@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Concept 2 VR App</title>
+    <!-- A-Frame JavaScript library -->
+    <script src="https://aframe.io/releases/1.1.0/aframe.min.js"></script>
+    <!-- A-Frame Physics System (for collision detection) -->
+    <script src="https://cdn.jsdelivr.net/gh/n5ro/aframe-physics-system@4.0.1/dist/aframe-physics-system.min.js"></script>
+    <!-- Socket.io -->
+    <script src="/socket.io/socket.io.js"></script>
+
+      
+    <script>
+        AFRAME.registerComponent('rowing', {
+            schema: {
+                viscosity: { type: 'float', default: 0.7 }
+            },
+
+            init: function () {
+                this.speed = 0;
+                this.position = this.el.getAttribute('position').z;
+
+                this.updateSpeed();
+            },
+
+            updateSpeed: function () {
+                // Génère une vitesse aléatoire entre 2.5 et 3.5
+                this.speed = 2.5 + Math.random() * (3.5 - 2.5);
+
+                // Met à jour la vitesse toutes les 2.5 secondes
+                setTimeout(() => {
+                    this.updateSpeed();
+                }, 2800);
+            },
+
+            tick: function (time, timeDelta) {
+                timeDelta /= 1000;
+
+                this.speed -= this.speed * this.data.viscosity * timeDelta;
+                this.position -= this.speed * timeDelta;
+
+                this.el.setAttribute('position', `0 0 ${this.position}`);
+            }
+        });
+    </script>
+
+    <script>
+        AFRAME.registerComponent('helice-rotation', {
+            schema: {
+                viscosity: { type: 'float', default: 0.7 },
+                speedFactor: { type: 'float', default: 1.0 }
+            },
+
+            init: function () {
+                this.speed = 0;
+                this.rotation = this.el.getAttribute('rotation').z;
+
+                this.updateSpeed();
+            },
+
+            updateSpeed: function () {
+                // Génère une vitesse aléatoire entre 2.5 et 3.5
+                this.speed = 2.5 + Math.random() * (3.5 - 2.5);
+
+                // Met à jour la vitesse toutes les 2.5 secondes
+                setTimeout(() => {
+                    this.updateSpeed();
+                }, 2800);
+            },
+
+            tick: function (time, timeDelta) {
+                timeDelta /= 1000;
+
+                this.speed -= this.speed * this.data.viscosity * timeDelta;
+                this.rotation += this.speed * this.data.speedFactor * timeDelta;
+
+                this.el.setAttribute('rotation', `0 0 ${this.rotation}`);
+            }
+        });
+    </script>
+
+    
+    <!--
+    <script>
+        AFRAME.registerComponent('rowing', {
+            schema: {
+                viscosity: { type: 'float', default: 0.7 }
+            },
+
+            init: function () {
+                this.speed = 0;
+                this.position = this.el.getAttribute('position').z;
+
+                this.socketClient = io();
+                this.socketClient.on('speed', (value) => {
+                    this.speed = value;
+                });
+            },
+
+            tick: function (time, timeDelta) {
+                timeDelta /= 1000;
+                this.speed -= this.speed * this.data.viscosity * timeDelta;
+                this.position -= this.speed * timeDelta;
+
+                this.el.setAttribute('position', `0 0 ${this.position}`);
+            }
+        });
+    </script>
+    <script>
+        AFRAME.registerComponent('helice-rotation', {
+            schema: {
+                viscosity: { type: 'float', default: 0.7 }
+            },
+
+            init: function () {
+                this.speed = 0;
+                this.rotation = this.el.getAttribute('rotation').z;
+
+                this.socketClient = io();
+                this.socketClient.on('speed', (value) => {
+                    this.speed = value;
+                });
+            },
+
+            tick: function (time, timeDelta) {
+                timeDelta /= 1000;
+
+                this.speed -= this.speed * this.data.viscosity * timeDelta;
+                this.rotation += this.speed * timeDelta;
+
+                this.el.setAttribute('rotation', `0 0 ${this.rotation}`);
+            }
+        });
+    </script>
+    -->
+    <!-- Custom collision detection-->
+<script>
+    AFRAME.registerComponent('collision-check', {
+        init: function () {
+            const boatYellow = document.querySelector('.boat-yellow');
+            const boatRed = document.querySelector('.boat-red');
+            let collisionDetected = false;
+
+            const checkCollision = () => {
+                const boatYellowPosition = boatYellow.getAttribute('position');
+                const boatRedPosition = boatRed.getAttribute('position');
+                const distance = boatYellowPosition.distanceTo(boatRedPosition);
+
+                if (distance <= 6.9) { // distance détecter de collision
+                    collisionDetected = true;
+                    document.querySelector('#lose-message').setAttribute('visible', 'true');
+                }
+            };
+
+            const interval = setInterval(checkCollision, 100); // Vérifie si collision : toutes les 100 mms
+
+            setTimeout(() => {
+                clearInterval(interval);
+
+                if (!collisionDetected) {
+                    document.querySelector('#win-message').setAttribute('visible', 'true');
+                }
+            }, 10 * 60 * 1000); // 10 minutes
+        }
+    });
+</script>
+
+
+    <a-assets>
+        <!-- bateau jaune -->
+        <a-asset-item id="boat" src="https://cdn.glitch.global/d38a2976-a9f4-4fde-a7b6-90ef91a5edf5/boat_final_2.glb?v=1681925264061"></a-asset-item>
+        
+        <!-- bateau adverse rouge -->
+        <a-asset-item id="boatred" src="https://cdn.glitch.global/d38a2976-a9f4-4fde-a7b6-90ef91a5edf5/boat_final_2_red.glb?v=1682347466764"></a-asset-item>
+        
+        <!-- hélice -->
+        <a-asset-item id="helice" src="https://cdn.glitch.global/d38a2976-a9f4-4fde-a7b6-90ef91a5edf5/helice.glb?v=1681835683180"></a-asset-item>
+
+    </a-assets>
+</head>
+
+<body>
+
+<a-scene physics="debug: true" shadow="enabled: true; autoUpdate: true; type: pcfsoft" > // mettre debug sur "false" pour cacher les balises de collisions 
+
+<!--a-cylinder material="opacity: 1; color: white" geometry="radius: 1.14" rotation="90 0 0" position="0 0.222 200" scale="35 2.36 5"></a-cylinder--> //cylindre destiné a faire du brouillage mais je suis pas fan 
+  <a-plane static-body rotation="-90 0 0" position="0 0.09 -80" width="15" height="1000"
+            material="color: #304ffe; roughness: 0.6; metalness: 0.4" shadow="cast: false; receive: true"></a-plane>
+
+        <a-box static-body width="35" height="0.6" depth="1000" position="22 0 -80"
+            material="color: #43a047; roughness: 0.9; metalness: 0.2" shadow="cast: false; receive: true"></a-box>
+        <a-box static-body width="35" height="0.6" depth="1000" position="-22 0 -80"
+            material="color: #43a047; roughness: 0.9; metalness: 0.2" shadow="cast: false; receive: true"></a-box>
+
+        <a-entity light="type: ambient; color: white; intensity: 0.5"></a-entity> 
+        <a-entity light="type: directional; color: white; intensity: 0.4; castShadow: true" position="2 8 2"></a-entity> 
+        <!--a-entity light="type: directional; castShadow: true;" position="5 5 5"></a-entity-->
+
+
+        <!--a-sky color="#81d4fa"></a-sky-->
+        <a-sky material="shader:gradient4;stops:0.47 0.50 0.7 1.5; color1: orange; color2: skyblue; color3: blue; color4: black;" position="0 35 0"></a-sky>
+
+
+        <!-- bateau adverse rouge-->
+        <a-gltf-model class="boat-red" static-body="mass: 10" src="#boatred" position="0 0 15" rowing="viscosity: 0.45" shadow="cast: false; receive: true">
+            <a-gltf-model src="#helice" scale="1.25 1.25 1.25" position="0.5551 0.1725 -0.2093" helice-rotation="viscosity: 0.5; speedFactor: 200" shadow="cast: true; receive: true"></a-gltf-model>
+            <a-gltf-model src="#helice" scale="1.25 1.25 1.25" position="-0.7051 0.1725 -0.2093" helice-rotation="viscosity: 0.5; speedFactor: 200" shadow="cast: true; receive: true"></a-gltf-model>  
+        </a-gltf-model>
+  
+        <!-- bateau jaune -->
+        <a-gltf-model class="boat-yellow" static-body="mass: 10" collision-check src="#boat" position="0 0 0" rowing="viscosity: 0.5" shadow="cast: false; receive: true">
+            <a-gltf-model src="#helice" scale="1.25 1.25 1.25" position="0.5551 0.1725 -0.2093" helice-rotation="viscosity: 0.55; speedFactor: 200" shadow="cast: true; receive: true"></a-gltf-model>
+            <a-gltf-model src="#helice" scale="1.25 1.25 1.25" position="-0.7051 0.1725 -0.2093" helice-rotation="viscosity: 0.55; speedFactor: 200" shadow="cast: true; receive: true"></a-gltf-model>            
+        </a-gltf-model>
+
+        <a-entity follow-boat="target: .boat-yellow" position="-0.080 0.3 -1.3"  rotation="0 180 0">
+            <a-camera>
+              <a-entity id="win-message" text="value: YOU WIN; color: red; width:6; align:center" position="0 0 -2" visible="false"></a-entity>
+              <a-entity id="lose-message" text="value: GAME OVER; color: red; width:6; align:center" position="0 0 -2" visible="false"></a-entity>
+            </a-camera>
+          </a-entity>
+          
+
+        <script>
+            AFRAME.registerComponent('follow-boat', {
+                schema: {
+                    target: {type: 'selector'}
+                },
+
+                tick: function () {
+                    var targetPosition = this.data.target.getAttribute('position');
+                    var newPosition = {
+                    x: targetPosition.x - 0.080,
+                    y: targetPosition.y + 0.3,
+                    z: targetPosition.z - 1.3
+                    };
+
+                    this.el.setAttribute('position', newPosition);
+                }
+                });
+        </script>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                let scene = document.querySelector('a-scene');
+
+                for (let z = 1; z >= -100; z--) {
+                    let gate = document.createElement('a-torus');
+                    gate.setAttribute('radius', 5);
+                    gate.setAttribute('radius-tubular', 0.14);
+                    if (z % 2) {
+                        gate.setAttribute('material', 'color: red; roughness: 0.6; metalness: 0.9');
+                        gate.setAttribute('shadow', 'cast: true; receive: true');
+                    } else {
+                        gate.setAttribute('material', 'color: yellow; roughness: 0.6; metalness: 0.7');
+                    }
+                    gate.setAttribute('shadow', 'cast: true; receive: true');
+                    gate.setAttribute('position', `0 0 ${z * 10}`);
+
+                    scene.appendChild(gate);
+                }
+            });
+        </script>
+
+
+        <script>
+        
+        AFRAME.registerShader('gradient2', {
+        schema: {
+            color1: {type: 'color', is: 'uniform', default: 'red'},
+            color2: {type: 'color', is: 'uniform', default: 'green'},
+            stops: { type: 'vec2', is: 'uniform', default: '0 1' },
+            opacity: { is: 'uniform', default: 1 },
+            angle: { is: 'uniform', default: 90 }
+        },
+        fragmentShader: `
+            varying vec2 vUv;
+            
+            uniform vec3 color1;
+            uniform vec3 color2;
+            uniform vec2 stops;
+            uniform float opacity;
+            uniform float angle;
+
+            void main() {
+            float degToRad = 0.01745329;
+            float t = vUv.x*cos(angle * degToRad) + vUv.y*sin(angle * degToRad);
+            gl_FragColor.a = opacity;
+            gl_FragColor.rgb = mix(color1, color2, smoothstep(stops.x,stops.y,t));
+            }`,
+        vertexShader: `
+            varying vec2 vUv;
+
+            void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `
+        });
+
+        AFRAME.registerShader('gradient3', {
+        schema: {
+            color1: {type: 'color', is: 'uniform', default: 'red'},
+            color2: {type: 'color', is: 'uniform', default: 'green'},
+            color3: {type: 'color', is: 'uniform', default: 'blue'},
+            stops: { type: 'vec3', is: 'uniform', default: '0 0.5 1' },
+            opacity: { is: 'uniform', default: 1 },
+            angle: { is: 'uniform', default: 90 }
+        },
+        fragmentShader: `
+            varying vec2 vUv;
+            
+            uniform vec3 color1;
+            uniform vec3 color2;
+            uniform vec3 color3;
+            uniform vec3 stops;
+            uniform float opacity;
+            uniform float angle;
+
+            void main() {
+            float degToRad = 0.01745329;
+            float t = vUv.x*cos(angle * degToRad) + vUv.y*sin(angle * degToRad);
+            gl_FragColor.a = opacity;
+            gl_FragColor.rgb = mix(color1, color2, smoothstep(stops.x,stops.y,t));
+            if (t > stops.y) gl_FragColor.rgb = mix(color2, color3, smoothstep(stops.y,stops.z,t));
+            }`,
+        vertexShader: `
+            varying vec2 vUv;
+
+            void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `
+        });
+
+        AFRAME.registerShader('gradient4', {
+        schema: {
+            color1: {type: 'color', is: 'uniform', default: 'red'},
+            color2: {type: 'color', is: 'uniform', default: 'green'},
+            color3: {type: 'color', is: 'uniform', default: 'blue'},
+            color4: {type: 'color', is: 'uniform', default: 'yellow'},
+            stops: { type: 'vec4', is: 'uniform', default: '0 0.33 0.66 1' },
+            opacity: { is: 'uniform', default: 1 },
+            angle: { is: 'uniform', default: 90 }
+        },
+        fragmentShader: `
+            varying vec2 vUv;
+            
+            uniform vec3 color1;
+            uniform vec3 color2;
+            uniform vec3 color3;
+            uniform vec3 color4;
+            uniform vec4 stops;
+            uniform float opacity;
+            uniform float angle;
+
+            void main() {
+            float degToRad = 0.01745329;
+            float t = vUv.x*cos(angle * degToRad) + vUv.y*sin(angle * degToRad);
+            gl_FragColor.a = opacity;
+            gl_FragColor.rgb = mix(color1, color2, smoothstep(stops.x,stops.y,t));
+            if (t > stops.y) gl_FragColor.rgb = mix(color2, color3, smoothstep(stops.y,stops.z,t));
+            if (t > stops.z) gl_FragColor.rgb = mix(color3, color4, smoothstep(stops.z,stops.w,t));
+            }`,
+        vertexShader: `
+            varying vec2 vUv;
+
+            void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `
+        });
+        </script>
+        
+        </a-scene>
+    </body>
+  </html>
+  
+
+     
